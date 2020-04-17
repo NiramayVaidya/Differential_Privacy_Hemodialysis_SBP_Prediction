@@ -49,23 +49,30 @@ if __name__ == '__main__':
     print('\n')
     times = []
     sbp_values = []
+    noised_sbp_values = []
     dbp_values = []
     found = False
-    with open('vip_cleaned.csv', 'r') as vip:
-        line = vip.readline()
-        line = vip.readline()
-        while line is not '' and not found:
-            line = line.strip().split(',')
-            while line[0] + ' ' + line[1] == str(pid) + ' ' + date:
+    with open('vip_cleaned.csv', 'r') as vip, open('vip_cleaned_sbp_noised.csv', 'r') as vip_noised:
+        line_v = vip.readline()
+        line_v = vip.readline()
+        line_vp = vip_noised.readline()
+        line_vp = vip_noised.readline()
+        while line_v is not '' and not found:
+            line_v = line_v.strip().split(',')
+            line_vp = line_vp.strip().split(',')
+            while line_v[0] + ' ' + line_v[1] == str(pid) + ' ' + date:
                 found = True
-                times.append(int(line[-1]))
-                sbp_values.append(int(line[3]))
-                dbp_values.append(int(line[4]))
-                print(line[-1], end=' ')
-                line = vip.readline().strip().split(',')
-                if line[0] is '':
+                times.append(int(line_v[-1]))
+                sbp_values.append(int(line_v[3]))
+                noised_sbp_values.append(int(line_vp[3]))
+                dbp_values.append(int(line_v[4]))
+                print(line_v[-1], end=' ')
+                line_v = vip.readline().strip().split(',')
+                line_vp = vip_noised.readline().strip().split(',')
+                if line_v[0] is '':
                     break
-            line = vip.readline()
+            line_v = vip.readline()
+            line_vp = vip_noised.readline()
     print('\n')
     if times == []:
         print('Rerun the code and select another date or another pid if this is the only listed date, this date does not have any associated times')
@@ -84,4 +91,6 @@ if __name__ == '__main__':
     x_train = np.array([[dbp_value, time] for dbp_value, time in \
         zip(dbp_values[:times.index(time) + 1], times[:times.index(time) + 1])])
     y_train = np.array(sbp_values[:times.index(time) + 1]).reshape(-1, 1)
-    print('Predicted SBP = ' + str(predict(x_train, y_train, [dbp_values[times.index(time) + 1], times[times.index(time) + 1]])))
+    print('Predicted SBP without noise = ' + str(predict(x_train, y_train, [dbp_values[times.index(time) + 1], times[times.index(time) + 1]])))
+    y_train = np.array(noised_sbp_values[:times.index(time) + 1]).reshape(-1, 1)
+    print('Predicted SBP with noise = ' + str(predict(x_train, y_train, [dbp_values[times.index(time) + 1], times[times.index(time) + 1]])))
