@@ -2,10 +2,15 @@ import sys
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from decimal import *
+from add_noise_vip_sbp import *
 
 def predict(x_train, y_train, x_test):
     regressor = LinearRegression()
     regressor.fit(x_train, y_train)
+    print('Regressor parameters: intercept = ' + str(regressor.intercept_[0]) + ', coefficients = ' + str(regressor.coef_[0][0]) + \
+        ', ' + str(regressor.coef_[0][1]))
+    print('Regressor equation: SBP = (' + str(regressor.coef_[0][0]) + ' * DBP) + (' + str(regressor.coef_[0][1]) + \
+        ' * time_value) + ' + str(regressor.intercept_[0]))
     y_pred = regressor.predict(np.array([x_test]))
     return float(Decimal(y_pred[0][0]).quantize(Decimal('1.00')))
 
@@ -91,6 +96,8 @@ if __name__ == '__main__':
     x_train = np.array([[dbp_value, time] for dbp_value, time in \
         zip(dbp_values[:times.index(time) + 1], times[:times.index(time) + 1])])
     y_train = np.array(sbp_values[:times.index(time) + 1]).reshape(-1, 1)
+    print('Epsilon unused, no noise addition')
     print('Predicted SBP without noise = ' + str(predict(x_train, y_train, [dbp_values[times.index(time) + 1], times[times.index(time) + 1]])))
     y_train = np.array(noised_sbp_values[:times.index(time) + 1]).reshape(-1, 1)
+    print('Epsilon = ' + str(epsilon))
     print('Predicted SBP with noise = ' + str(predict(x_train, y_train, [dbp_values[times.index(time) + 1], times[times.index(time) + 1]])))

@@ -1,13 +1,14 @@
 import sys
 import numpy as np
 
+sensitivity = 250
+epsilon = 5
+
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print('Usage: python3 add_noise_vip_sbp.py <noise_type>')
         print('Noise type: laplace/gaussian')
         sys.exit(0)
-    sensitivity = 250
-    epsilon = 5
     with open('vip_cleaned.csv', 'r') as vip_cleaned:
         with open('vip_cleaned_sbp_noised.csv', 'w') as vip_cleaned_sbp_noised:
             vip_cleaned_sbp_noised.write(vip_cleaned.readline().strip() + '\n')
