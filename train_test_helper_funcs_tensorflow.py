@@ -1,6 +1,9 @@
 import numpy as np
 import sys
 
+def quantize_float(num):
+    return float(Decimal(num).quantize(Decimal('1.00')))
+
 def get_train_test_split():
     pids = []
     with open('idp_cleaned.csv', 'r') as idp:
@@ -11,10 +14,10 @@ def get_train_test_split():
             pids.append(int(line[0]))
             line = idp.readline()
     train_test_split_point = int(len(pids) * 0.8)
-    train_pids = pids[:train_test_split_point]
-    # train_pids = pids[:int(len(pids) * 0.25 * 0.8)]
-    test_pids = pids[train_test_split_point:]
-    # test_pids = pids[int(len(pids) * 0.25 * 0.8):int(len(pids) * 0.25)]
+    # train_pids = pids[:train_test_split_point]
+    train_pids = pids[:int(len(pids) * 0.25 * 0.8)]
+    # test_pids = pids[train_test_split_point:]
+    test_pids = pids[int(len(pids) * 0.25 * 0.8):int(len(pids) * 0.25)]
     return (train_pids, test_pids)
 
 def vectorized_result(j):
@@ -47,6 +50,7 @@ def get_training_data(train_pids):
             line = vip.readline()
     training_inputs = np.array([[1.0, dbp, time] for dbp, time in zip(train_dbp_values, train_times)], dtype=np.float64)
     training_results = np.array([vectorized_result_list(sbp) for sbp in train_sbp_values], dtype=np.float64)
+    # training_results = np.array([[sbp / 250] for sbp in train_sbp_values], dtype=np.float64)
     return (training_inputs, training_results)
 
 def get_test_data(test_pids):
@@ -111,9 +115,40 @@ def get_test_data(test_pids):
     print('\n')
 
     test_input = np.array([[1.0, dbp_values[times.index(time)], times[times.index(time)]]], dtype=np.float64)
-    test_result = np.array([vectorized_result_list(sbp_values[times.index(time)])], dtype=np.float64)
+    # test_result = np.array([vectorized_result_list(sbp_values[times.index(time)])], dtype=np.float64)
+    test_result = np.array([[sbp_values[times.index(time)]]])
 
     return (test_input, test_result)
+
+def compute_save_prediction_results(test_pids, tf_session, tf_X_var, tf_y_var, tf_predict_var):
+    pid_dates = {}
+    for test_pid in test_pids:
+        pid_dates[test_pid] = []
+    with open('d1_cleaned.csv', 'r') as d1:
+        line = d1.readline()
+        line = d1.readline()
+        while line is not '':
+            line = line.strip().split(',')
+            if int(line[0]) in pid_dates.keys():
+                pid_dates[int(line[0])].append(line[1])
+            line = d1.readline()
+    with open('prediction_results.txt', 'w') as results:
+        results.write('Pid Date Time Actual_SBP Predicted_SBP Percentage_error\n')
+        with open('vip_cleaned.csv', 'r') as vip:
+            line = vip.readline()
+            line = vip.readline()
+            while line is not '':
+                line = line.strip().split(',')
+                if int(line[0]) in pid_dates.keys():
+                    if line[1] in pid_dates[int(line[0])]:
+                        test_X = np.array([[1.0, int(line[4]), int(line[-1])]], dtype=np.float64)
+                        # test_y = np.array([vectorized_result_list(int(line[3]))], dtype=np.float64)
+                        test_y = np.array([[int(line[3])]])
+                        actual_sbp = int(line[3])
+                        # predicted_sbp = tf_session.run(tf_predict_var, feed_dict={tf_X_var: test_X, tf_y_var: test_y})[0] + 1
+                        predicted_sbp = tf_session.run(tf_predict_var, feed_dict={tf_X_var: test_X, tf_y_var: test_y})[0] * 250
+                        results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[3] + ' ' + str(predicted_sbp) + ' ' + str(abs(predicted_sbp - actual_sbp) / actual_sbp * 100) + '\n')
+                line = vip.readline()
 
 if __name__ == '__main__':
     train_pids, test_pids = get_train_test_split()

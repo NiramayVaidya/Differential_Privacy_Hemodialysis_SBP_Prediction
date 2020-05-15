@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
-from train_test_helper_funcs_tensorflow import get_train_test_split, get_training_data, vectorized_result_list
+from train_test_helper_funcs_tensorflow import get_train_test_split, get_training_data, vectorized_result_list, quantize_float
+import time
 
 RANDOM_SEED = 42
 tf.set_random_seed(RANDOM_SEED)
@@ -20,14 +21,22 @@ def main():
     train_pids, test_pids = get_train_test_split()
 
     print('DEBUG - Getting training data...')
+    
+    ini_time = time.time()
+
     train_X, train_y = get_training_data(train_pids)
     # train_X = np.array([[1.0, 65, 30], [1.0, 75, 45]], dtype=np.float64)
     # train_y = np.array([vectorized_result_list(115), vectorized_result_list(125)], dtype=np.float64)
+    # train_y = np.array([[115 / 250], [125 / 250]], dtype=np.float64)
     print('DEBUG - Got training data')
 
+    print('INFO - Execution time for getting training data: ' + str(quantize_float(time.time() - ini_time)) + ' s')
+
     x_size = train_X.shape[1]
-    h_size = 10
+    h_size = 5
     y_size = train_y.shape[1]
+    # print('DEBUG - x_size: ' + str(x_size))
+    # print('DEBUG - y_size: ' + str(y_size))
 
     X = tf.placeholder("float", shape=[None, x_size], name='X')
     y = tf.placeholder("float", shape=[None, y_size], name='y')
@@ -47,16 +56,30 @@ def main():
     init = tf.global_variables_initializer()
     sess.run(init)
 
-    for epoch in range(10):
+    # start = 0
+    # end = int(len(train_X) / 10)
+
+    for epoch in range(5):
         print('DEBUG - Beginning epoch ' + str(epoch + 1) + '...')
+
+        ini_time = time.time()
+
+        # for i in range(start, end):
         for i in range(len(train_X)):
             sess.run(updates, feed_dict={X: train_X[i: i + 1], y: train_y[i: i + 1]})
         print('DEBUG - Epoch ' + str(epoch + 1) + ' ended')
 
-        train_accuracy = np.mean(np.argmax(train_y, axis=1) ==
-                                 sess.run(predict, feed_dict={X: train_X, y: train_y}))
+        print('INFO - Execution time for epoch ' + str(epoch + 1) + ': ' + str(quantize_float(time.time() - ini_time)) + ' s')
 
-        print('Epoch = %d, train accuracy = %.2f%%' % (epoch + 1, 100.0 * train_accuracy))
+        # train_accuracy = np.mean(np.argmax(train_y, axis=1) == sess.run(predict, feed_dict={X:train_X, y: train_y}))
+        train_accuracy = np.mean(train_y == sess.run(predict, feed_dict={X: train_X, y: train_y}))
+
+        print('DEBUG - prediction: ' + str(sess.run(predict, feed_dict={X: train_X, y: train_y})))
+
+        print('Epoch = %d, train accuracy = %.2f%%' % (epoch + 1, 100 * train_accuracy))
+
+        # start += int((len(train_X) / 10))
+        # end += int((len(train_X) / 10))
 
     saver.save(sess, 'nn_tensorflow')
 
