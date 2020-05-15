@@ -4,15 +4,16 @@ from sklearn.linear_model import LinearRegression
 from decimal import *
 from add_noise_vip_sbp import *
 
+def quantize_float(num):
+    return float(Decimal(num).quantize(Decimal('1.00')))
+
 def predict(x_train, y_train, x_test):
     regressor = LinearRegression()
     regressor.fit(x_train, y_train)
-    print('Regressor parameters: intercept = ' + str(regressor.intercept_[0]) + ', coefficients = ' + str(regressor.coef_[0][0]) + \
-        ', ' + str(regressor.coef_[0][1]))
-    print('Regressor equation: SBP = (' + str(regressor.coef_[0][0]) + ' * DBP) + (' + str(regressor.coef_[0][1]) + \
-        ' * time_value) + ' + str(regressor.intercept_[0]))
+    print('Regressor parameters: intercept = ' + str(quantize_float(regressor.intercept_[0])) + ', coefficients = ' + str(quantize_float(regressor.coef_[0][0])) + ', ' + str(quantize_float(regressor.coef_[0][1])))
+    print('Regressor equation: SBP = (' + str(quantize_float(regressor.coef_[0][0])) + ' * DBP) + (' + str(quantize_float(regressor.coef_[0][1])) + ' * time_value) + ' + str(quantize_float(regressor.intercept_[0])))
     y_pred = regressor.predict(np.array([x_test]))
-    return float(Decimal(y_pred[0][0]).quantize(Decimal('1.00')))
+    return quantize_float(y_pred[0][0])
 
 if __name__ == '__main__':
     pids = []
@@ -45,7 +46,7 @@ if __name__ == '__main__':
                     break
             line = d1.readline()
     print('\n')
-    if dates[0] is '':
+    if dates == [] or dates[0] is '':
         print('Rerun the code and select another pid, this pid does not have any associated dates')
         sys.exit(0)
     date = input('Enter date by selecting one from the above: ')
