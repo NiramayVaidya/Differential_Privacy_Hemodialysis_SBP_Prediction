@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+from decimal import *
 
 def quantize_float(num):
     return float(Decimal(num).quantize(Decimal('1.00')))
@@ -115,13 +116,15 @@ def get_test_data(test_pids):
     print('\n')
 
     test_input = np.array([[1.0, dbp_values[times.index(time)], times[times.index(time)]]], dtype=np.float64)
-    # test_result = np.array([vectorized_result_list(sbp_values[times.index(time)])], dtype=np.float64)
-    test_result = np.array([[sbp_values[times.index(time)]]])
+    test_result = np.array([vectorized_result_list(sbp_values[times.index(time)])], dtype=np.float64)
+    # test_result = np.array([[sbp_values[times.index(time)]]])
 
     return (test_input, test_result)
 
 def compute_save_prediction_results(test_pids, tf_session, tf_X_var, tf_y_var, tf_predict_var):
     pid_dates = {}
+    total_error = 0
+    num_test_cases = 0
     for test_pid in test_pids:
         pid_dates[test_pid] = []
     with open('d1_cleaned.csv', 'r') as d1:
@@ -141,14 +144,18 @@ def compute_save_prediction_results(test_pids, tf_session, tf_X_var, tf_y_var, t
                 line = line.strip().split(',')
                 if int(line[0]) in pid_dates.keys():
                     if line[1] in pid_dates[int(line[0])]:
+                        num_test_cases += 1
                         test_X = np.array([[1.0, int(line[4]), int(line[-1])]], dtype=np.float64)
-                        # test_y = np.array([vectorized_result_list(int(line[3]))], dtype=np.float64)
-                        test_y = np.array([[int(line[3])]])
+                        test_y = np.array([vectorized_result_list(int(line[3]))], dtype=np.float64)
+                        # test_y = np.array([[int(line[3])]])
                         actual_sbp = int(line[3])
-                        # predicted_sbp = tf_session.run(tf_predict_var, feed_dict={tf_X_var: test_X, tf_y_var: test_y})[0] + 1
-                        predicted_sbp = tf_session.run(tf_predict_var, feed_dict={tf_X_var: test_X, tf_y_var: test_y})[0] * 250
-                        results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[3] + ' ' + str(predicted_sbp) + ' ' + str(abs(predicted_sbp - actual_sbp) / actual_sbp * 100) + '\n')
+                        predicted_sbp = tf_session.run(tf_predict_var, feed_dict={tf_X_var: test_X, tf_y_var: test_y})[0] + 1
+                        # predicted_sbp = tf_session.run(tf_predict_var, feed_dict={tf_X_var: test_X, tf_y_var: test_y})[0] * 250
+                        error = quantize_float(abs(predicted_sbp - actual_sbp) / actual_sbp * 100)
+                        total_error += error
+                        results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[3] + ' ' + str(predicted_sbp) + ' ' + str(error) + '\n')
                 line = vip.readline()
+    return total_error / num_test_cases
 
 if __name__ == '__main__':
     train_pids, test_pids = get_train_test_split()

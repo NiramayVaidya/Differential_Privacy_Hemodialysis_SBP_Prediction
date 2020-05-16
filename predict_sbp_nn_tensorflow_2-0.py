@@ -22,22 +22,24 @@ def main():
 
         ini_time = time.time()
 
-        compute_save_prediction_results(test_pids, sess, X, y, predict)
+        avg_error = compute_save_prediction_results(test_pids, sess, X, y, predict)
         print('DEBUG - Computed and saved prediction results to prediction_results.txt')
 
         print('INFO - Execution time for computing and saving prediction results: ' + str(quantize_float(time.time() - ini_time)) + ' s')
+
+        print('INFO - Average percentage error = ' + str(quantize_float(avg_error)))
     
         # print('DEBUG - Getting test data...')
         test_X, test_y = get_test_data(test_pids)
         # print('DEBUG - Got test data')
 
-        # actual_sbp = np.argmax(test_y, axis=1)[0] + 1
-        actual_sbp = test_y[0][0]
+        actual_sbp = np.argmax(test_y, axis=1)[0] + 1
+        # actual_sbp = test_y[0][0]
         print('Actual SBP = ' + str(actual_sbp))
-        # predicted_sbp = sess.run(predict, feed_dict={X: test_X, y: test_y})[0] + 1
-        predicted_sbp = sess.run(predict, feed_dict={X: test_X, y: test_y})[0] * 250
+        predicted_sbp = sess.run(predict, feed_dict={X: test_X, y: test_y})[0] + 1
+        # predicted_sbp = sess.run(predict, feed_dict={X: test_X, y: test_y})[0] * 250
         print('Predicted SBP = ' + str(predicted_sbp))
-        print('INFO - Percentage error = ' + str(abs(predicted_sbp - actual_sbp) / actual_sbp * 100))
+        print('INFO - Percentage error = ' + str(quantize_float(abs(predicted_sbp - actual_sbp) / actual_sbp * 100)))
 
 if __name__ == '__main__':
     main()
