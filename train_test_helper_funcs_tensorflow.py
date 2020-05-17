@@ -50,8 +50,8 @@ def get_training_data(train_pids):
                 train_times.append(int(line[-1]))
             line = vip.readline()
     training_inputs = np.array([[1.0, dbp, time] for dbp, time in zip(train_dbp_values, train_times)], dtype=np.float64)
-    training_results = np.array([vectorized_result_list(sbp) for sbp in train_sbp_values], dtype=np.float64)
-    # training_results = np.array([[sbp / 250] for sbp in train_sbp_values], dtype=np.float64)
+    # training_results = np.array([vectorized_result_list(sbp) for sbp in train_sbp_values], dtype=np.float64)
+    training_results = np.array([[quantize_float(sbp / 250)] for sbp in train_sbp_values], dtype=np.float64)
     return (training_inputs, training_results)
 
 def get_test_data(test_pids):
@@ -116,8 +116,8 @@ def get_test_data(test_pids):
     print('\n')
 
     test_input = np.array([[1.0, dbp_values[times.index(time)], times[times.index(time)]]], dtype=np.float64)
-    test_result = np.array([vectorized_result_list(sbp_values[times.index(time)])], dtype=np.float64)
-    # test_result = np.array([[sbp_values[times.index(time)]]])
+    # test_result = np.array([vectorized_result_list(sbp_values[times.index(time)])], dtype=np.float64)
+    test_result = np.array([[quantize_float(sbp_values[times.index(time)] / 250)]])
 
     return (test_input, test_result)
 
@@ -146,8 +146,8 @@ def compute_save_prediction_results(test_pids, tf_session, tf_X_var, tf_y_var, t
                     if line[1] in pid_dates[int(line[0])]:
                         num_test_cases += 1
                         test_X = np.array([[1.0, int(line[4]), int(line[-1])]], dtype=np.float64)
-                        test_y = np.array([vectorized_result_list(int(line[3]))], dtype=np.float64)
-                        # test_y = np.array([[int(line[3])]])
+                        # test_y = np.array([vectorized_result_list(int(line[3]))], dtype=np.float64)
+                        test_y = np.array([[quantize_float(int(line[3]) / 250)]])
                         actual_sbp = int(line[3])
                         predicted_sbp = tf_session.run(tf_predict_var, feed_dict={tf_X_var: test_X, tf_y_var: test_y})[0] + 1
                         # predicted_sbp = tf_session.run(tf_predict_var, feed_dict={tf_X_var: test_X, tf_y_var: test_y})[0] * 250
@@ -155,7 +155,7 @@ def compute_save_prediction_results(test_pids, tf_session, tf_X_var, tf_y_var, t
                         total_error += error
                         results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[3] + ' ' + str(predicted_sbp) + ' ' + str(error) + '\n')
                 line = vip.readline()
-    return total_error / num_test_cases
+    return quantize_float(total_error / num_test_cases)
 
 if __name__ == '__main__':
     train_pids, test_pids = get_train_test_split()
