@@ -88,9 +88,10 @@ if __name__ == '__main__':
         sys.exit(0)
     # Since linear regression needs a minimum of 3 data points to find best fit line, the user will not be able to predict SBP
     # for the first 3 times
-    time = int(input('Enter time by selecting one from the above except the last and the first 3: '))
-    while time not in times or time == times[-1]:
-        time = int(input('Enter time by selecting one from the above except the last and the first 3: '))
+    '''
+    time = int(input('Enter time by selecting one from the above except the last and the first 2: '))
+    while time not in times or time == times[-1] or time in times[:2]:
+        time = int(input('Enter time by selecting one from the above except the last and the first 2: '))
     print('\n')
     print('For the next measure time ' + str(times[times.index(time) + 1]) + ' ->')
     print('True SBP = ' + str(sbp_values[times.index(time) + 1]))
@@ -102,3 +103,13 @@ if __name__ == '__main__':
     y_train = np.array(noised_sbp_values[:times.index(time) + 1]).reshape(-1, 1)
     print('Epsilon = ' + str(epsilon))
     print('Predicted SBP with noise = ' + str(predict(x_train, y_train, [dbp_values[times.index(time) + 1], times[times.index(time) + 1]])))
+    '''
+    time = int(input('Enter time by selecting one from the above except the first 3: '))
+    while time not in times or time in times[:3]:
+        time = int(input('Enter time by selecting one from the above except the first 3: '))
+    print('\n')
+    print('Actual SBP = ' + str(sbp_values[times.index(time)]))
+    x_train = np.array([[dbp_value, time] for dbp_value, time in \
+        zip(dbp_values[:times.index(time)], times[:times.index(time)])])
+    y_train = np.array(sbp_values[:times.index(time)]).reshape(-1, 1)
+    print('Predicted SBP = ' + str(predict(x_train, y_train, [dbp_values[times.index(time)], times[times.index(time)]])))
