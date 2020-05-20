@@ -108,8 +108,12 @@ if __name__ == '__main__':
     while time not in times or time in times[:3]:
         time = int(input('Enter time by selecting one from the above except the first 3: '))
     print('\n')
-    print('Actual SBP = ' + str(sbp_values[times.index(time)]))
+    actual_sbp = sbp_values[times.index(time)]
+    print('Actual SBP = ' + str(actual_sbp))
     x_train = np.array([[dbp_value, time] for dbp_value, time in \
         zip(dbp_values[:times.index(time)], times[:times.index(time)])])
     y_train = np.array(sbp_values[:times.index(time)]).reshape(-1, 1)
-    print('Predicted SBP = ' + str(predict(x_train, y_train, [dbp_values[times.index(time)], times[times.index(time)]])))
+    predicted_sbp = predict(x_train, y_train, [dbp_values[times.index(time)], times[times.index(time)]])
+    print('Predicted SBP = ' + str(predicted_sbp))
+    print('INFO - Absolute Percentage error = ' + str(quantize_float(abs(predicted_sbp - actual_sbp) / actual_sbp * 100)))
+
