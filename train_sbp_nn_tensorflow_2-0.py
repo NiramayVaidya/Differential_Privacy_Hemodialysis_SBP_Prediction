@@ -53,8 +53,8 @@ def main():
     w_2 = init_weights((h_size, y_size))
 
     yhat = forwardprop(X, w_1, w_2)
-    # predict = tf.argmax(yhat, axis=1, name='predict')
-    predict = tf.reduce_max(yhat, axis=1, name='predict')
+    predict = tf.argmax(yhat, axis=1, name='predict')
+    # predict = tf.reduce_max(yhat, axis=1, name='predict')
 
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=yhat))
     updates = tf.compat.v1.train.GradientDescentOptimizer(0.001).minimize(cost)
@@ -80,8 +80,8 @@ def main():
 
         print('INFO - Execution time for epoch ' + str(epoch + 1) + ': ' + str(quantize_float(time.time() - ini_time)) + ' s')
 
-        # train_accuracy = np.mean(np.argmax(train_y, axis=1) == sess.run(predict, feed_dict={X: train_X, y: train_y}))
-        train_accuracy = np.mean(np.max(train_y, axis=1) == sess.run(predict, feed_dict={X: train_X, y: train_y}))
+        train_accuracy = np.mean(np.argmax(train_y, axis=1) == sess.run(predict, feed_dict={X: train_X, y: train_y}))
+        # train_accuracy = np.mean(np.max(train_y, axis=1) == sess.run(predict, feed_dict={X: train_X, y: train_y}))
 
         # print('DEBUG - actual: ' + str(np.argmax(train_y, axis=1)))
         # print('DEBUG - actual: ' + str(np.max(train_y, axis=1)))

@@ -1,5 +1,9 @@
 import numpy as np
 import sys
+from decimal import *
+
+def quantize_float(num):
+    return float(Decimal(num).quantize(Decimal('1.00')))
 
 def get_train_test_split():
     pids = []
@@ -104,6 +108,42 @@ def get_test_data(test_pids):
     test_result = sbp_values[times.index(time)]
 
     return (test_input, test_result)
+
+def get_prediction(network, test_input):
+    return np.argmax(network.feedforward(test_input)) + 1
+
+def compute_save_prediction_results(network):
+    pid_dates = {}
+    total_error = 0
+    num_test_cases = 0
+    for test_pid in test_pids:
+        pid_dates[test_pid] = []
+    with open('d1_cleaned.csv', 'r') as d1:
+        line = d1.readline()
+        line = d1.readline()
+        while line is not '':
+            line = line.strip().split(',')
+            if int(line[0]) in pid_dates.keys():
+                pid_dates[int(line[0])].append(line[1])
+            line = d1.readline()
+    with open('prediction_results.txt', 'w') as results:
+        results.write('Pid Date Time Actual_SBP Predicted_SBP Absolute_Percentage_Error\n')
+        with open('vip_cleaned.csv', 'r') as vip:
+            line = vip.readline()
+            line = vip.readline()
+            while line is not '':
+                line = line.strip().split(',')
+                if int(line[0]) in pid_dates.keys():
+                    if line[1] in pid_dates[int(line[0])]:
+                        num_test_cases += 1
+                        test_input = np.array(np.reshape([int(line[4]), int(line[-1])], (2, 1)), dtype=np.float64)
+                        test_result = int(line[3])
+                        prediction = get_prediction(network, test_input)
+                        error = quantize_float(abs(prediction - test_result) / test_result * 100)
+                        total_error += error
+                        results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[3] + ' ' + str(predicted_sbp) + ' ' + str(error) + '\n')
+                line = vip.readline()
+    return quantize_float(total_error / num_test_cases)
 
 if __name__ == '__main__':
     train_pids, test_pids = get_train_test_split()
