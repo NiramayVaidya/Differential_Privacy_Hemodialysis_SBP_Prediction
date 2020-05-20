@@ -86,9 +86,9 @@ if __name__ == '__main__':
     elif len(times) == 1:
         print('Rerun the code and select another date, this date has only one associated time')
         sys.exit(0)
+    '''
     # Since linear regression needs a minimum of 3 data points to find best fit line, the user will not be able to predict SBP
     # for the first 3 times
-    '''
     time = int(input('Enter time by selecting one from the above except the last and the first 2: '))
     while time not in times or time == times[-1] or time in times[:2]:
         time = int(input('Enter time by selecting one from the above except the last and the first 2: '))
