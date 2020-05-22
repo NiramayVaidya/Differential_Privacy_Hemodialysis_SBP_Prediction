@@ -1,19 +1,8 @@
 import sys
 import numpy as np
-from sklearn.linear_model import LinearRegression
-from decimal import *
 from add_noise_vip_sbp import *
-
-def quantize_float(num):
-    return float(Decimal(num).quantize(Decimal('1.00')))
-
-def predict(x_train, y_train, x_test):
-    regressor = LinearRegression()
-    regressor.fit(x_train, y_train)
-    print('Regressor parameters: intercept = ' + str(quantize_float(regressor.intercept_[0])) + ', coefficients = ' + str(quantize_float(regressor.coef_[0][0])) + ', ' + str(quantize_float(regressor.coef_[0][1])))
-    print('Regressor equation: SBP = (' + str(quantize_float(regressor.coef_[0][0])) + ' * DBP) + (' + str(quantize_float(regressor.coef_[0][1])) + ' * time_value) + ' + str(quantize_float(regressor.intercept_[0])))
-    y_pred = regressor.predict(np.array([x_test]))
-    return quantize_float(y_pred[0][0])
+from predict_helper_funcs import predict, compute_save_prediction_results, quantize_float
+import time as t
 
 if __name__ == '__main__':
     pids = []
@@ -110,10 +99,19 @@ if __name__ == '__main__':
     print('\n')
     actual_sbp = sbp_values[times.index(time)]
     print('Actual SBP = ' + str(actual_sbp))
-    x_train = np.array([[dbp_value, time] for dbp_value, time in \
-        zip(dbp_values[:times.index(time)], times[:times.index(time)])])
+    x_train = np.array([[dbp_value, time] for dbp_value, time in zip(dbp_values[:times.index(time)], times[:times.index(time)])])
     y_train = np.array(sbp_values[:times.index(time)]).reshape(-1, 1)
-    predicted_sbp = predict(x_train, y_train, [dbp_values[times.index(time)], times[times.index(time)]])
+    predicted_sbp = predict(x_train, y_train, [dbp_values[times.index(time)], times[times.index(time)]], True)
     print('Predicted SBP = ' + str(predicted_sbp))
     print('INFO - Absolute Percentage error = ' + str(quantize_float(abs(predicted_sbp - actual_sbp) / actual_sbp * 100)))
 
+    print('DEBUG - Computing and saving prediction results...')
+
+    ini_time = t.time()
+
+    mape = compute_save_prediction_results()
+    print('DEBUG - Computed and saved prediction results to prediction_results_regression.txt')
+
+    print('INFO - Execution time for computing and saving prediction results: ' + str(quantize_float(t.time() - ini_time)) + ' s')
+
+    print('INFO - Mean Absolute percentage error (MAPE) = ' + str(mape))
