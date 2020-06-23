@@ -1,0 +1,2 @@
+regression-hold-out-mape, regression-cross-validation-mape, neural-network-hold-out-mape, neural-network-cross-validation-mape, neural-network-tensorflow-hold-out-mape, neural-network-tensorflow-cross-validation-mape
+11.68, 12.13, 15.05, 0, 14.04, 0

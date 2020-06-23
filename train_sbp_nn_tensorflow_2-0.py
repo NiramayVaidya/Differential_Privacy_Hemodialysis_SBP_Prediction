@@ -41,7 +41,7 @@ def main():
     # print('DEBUG - train_y = ' + str(train_y))
 
     x_size = train_X.shape[1]
-    h_size = 5
+    h_size = 10
     y_size = train_y.shape[1]
     # print('DEBUG - x_size: ' + str(x_size))
     # print('DEBUG - y_size: ' + str(y_size))
@@ -57,7 +57,8 @@ def main():
     # predict = tf.reduce_max(yhat, axis=1, name='predict')
 
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=yhat))
-    updates = tf.compat.v1.train.GradientDescentOptimizer(0.001).minimize(cost)
+    # updates = tf.compat.v1.train.GradientDescentOptimizer(0.001).minimize(cost)
+    updates = tf.compat.v1.train.AdamOptimizer(0.001).minimize(cost)
 
     saver = tf.compat.v1.train.Saver()
 
@@ -73,10 +74,15 @@ def main():
 
         ini_time = time.time()
 
-        # for i in range(start, end):
-        for i in range(len(train_X)):
-            sess.run(updates, feed_dict={X: train_X[i: i + 1], y: train_y[i: i + 1]})
-        print('DEBUG - Epoch ' + str(epoch + 1) + ' ended')
+        try:
+            # for i in range(start, end):
+            for i in range(len(train_X)):
+                sess.run(updates, feed_dict={X: train_X[i: i + 1], y: train_y[i: i + 1]})
+        except KeyboardInterrupt:
+            print('DEBUG - Epoch ' + str(epoch + 1) + ' interrupted')
+            saver.save(sess, 'nn_tensorflow')
+            sess.close()
+            exit(0)
 
         print('INFO - Execution time for epoch ' + str(epoch + 1) + ': ' + str(quantize_float(time.time() - ini_time)) + ' s')
 

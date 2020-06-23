@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     ini_time = time.time()
 
-    mape = compute_save_prediction_results(nn)
+    mape = compute_save_prediction_results(nn, test_pids)
     print('DEBUG - Computed and saved prediction results to prediction_results.txt')
 
     print('INFO - Execution time for computing and saving prediction results: ' + str(quantize_float(time.time() - ini_time)) + ' s')
@@ -25,5 +25,5 @@ if __name__ == '__main__':
 
     print('Actual SBP = ' + str(test_result))
     prediction = get_prediction(nn, test_input)
-    print('Predicted SBP = ' + str(prediction)
+    print('Predicted SBP = ' + str(prediction))
     print('INFO - Absolute Percentage error = ' + str(quantize_float(abs(prediction - test_result) / test_result * 100)))

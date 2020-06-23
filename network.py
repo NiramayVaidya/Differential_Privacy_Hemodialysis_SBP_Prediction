@@ -27,7 +27,8 @@ class Network(object):
     def __init__(self, sizes, cost=CrossEntropyCost):
         self.num_layers = len(sizes)
         self.sizes = sizes
-        self.default_weight_initializer()
+        # self.default_weight_initializer()
+        self.large_weight_initializer()
         self.cost=cost
 
     def default_weight_initializer(self):
@@ -79,7 +80,7 @@ class Network(object):
                 self.update_mini_batch(
                     mini_batch, eta, lmbda, len(training_data))
 
-            print("Epoch %s training complete" % (j + 1))
+            print("DEBUG - Epoch %s training complete" % (j + 1))
 
             if monitor_training_cost:
                 cost = self.total_cost(training_data, lmbda)

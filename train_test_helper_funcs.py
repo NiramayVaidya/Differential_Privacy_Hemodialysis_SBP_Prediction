@@ -19,6 +19,33 @@ def get_train_test_split():
     test_pids = pids[train_test_split_point:]
     return (train_pids, test_pids)
 
+def get_train_test_split_2():
+    pids = []
+    train_pids_list = []
+    test_pids_list = []
+    with open('idp_cleaned.csv', 'r') as idp:
+        line = idp.readline()
+        line = idp.readline()
+        while line is not '':
+            line = line.strip().split(',')
+            pids.append(int(line[0]))
+            line = idp.readline()
+    train_test_split_point = int(len(pids) * 0.8)
+    train_pids_list.append(pids[:train_test_split_point])
+    test_pids_list.append(pids[train_test_split_point:])
+
+    for iterator in range(3, 0, -1):
+        train_test_split_point_1 = int(len(pids) * 0.2 * iterator)
+        train_test_split_point_2 = int(len(pids) * 0.2 * (iterator + 1))
+        train_pids_list.append(pids[:train_test_split_point_1] + pids[train_test_split_point_2:])
+        test_pids_list.append(pids[train_test_split_point_1:train_test_split_point_2])
+
+    train_test_split_point = int(len(pids) * 0.2)
+    train_pids_list.append(pids[train_test_split_point:])
+    test_pids_list.append(pids[:train_test_split_point])
+
+    return (train_pids_list, test_pids_list)
+
 def vectorized_result(j):
     e = np.zeros((250, 1))
     e[j] = 1.0
@@ -100,7 +127,8 @@ def get_test_data(test_pids):
         print('Rerun the code and select another date or another pid if this is the only listed date, this date does not have any associated times')
         sys.exit(0)
     time = int(input('Enter time by selecting one from the above: '))
-    while time not in times or time == times[-1]:
+    # while time not in times or time == times[-1]:
+    while time not in times:
         time = int(input('Enter time by selecting one from the above: '))
     print('\n')
 
@@ -112,7 +140,7 @@ def get_test_data(test_pids):
 def get_prediction(network, test_input):
     return np.argmax(network.feedforward(test_input)) + 1
 
-def compute_save_prediction_results(network):
+def compute_save_prediction_results(network, test_pids):
     pid_dates = {}
     total_error = 0
     num_test_cases = 0
@@ -141,8 +169,46 @@ def compute_save_prediction_results(network):
                         prediction = get_prediction(network, test_input)
                         error = quantize_float(abs(prediction - test_result) / test_result * 100)
                         total_error += error
-                        results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[3] + ' ' + str(predicted_sbp) + ' ' + str(error) + '\n')
+                        results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[3] + ' ' + str(prediction) + ' ' + str(error) + '\n')
                 line = vip.readline()
+    return quantize_float(total_error / num_test_cases)
+
+def compute_save_prediction_results_2(network, test_pids, fold):
+    pid_dates = {}
+    total_error = 0
+    num_test_cases = 0
+    for test_pid in test_pids:
+        pid_dates[test_pid] = []
+    with open('d1_cleaned.csv', 'r') as d1:
+        line = d1.readline()
+        line = d1.readline()
+        while line is not '':
+            line = line.strip().split(',')
+            if int(line[0]) in pid_dates.keys():
+                pid_dates[int(line[0])].append(line[1])
+            line = d1.readline()
+    mode = 'a'
+    if fold == 1:
+        mode = 'w'
+    with open('prediction_results_2.txt', mode) as results:
+        results.write('Fold ' + str(fold) + '\n')
+        results.write('Pid Date Time Actual_SBP Predicted_SBP Absolute_Percentage_Error\n')
+        with open('vip_cleaned.csv', 'r') as vip:
+            line = vip.readline()
+            line = vip.readline()
+            while line is not '':
+                line = line.strip().split(',')
+                if int(line[0]) in pid_dates.keys():
+                    if line[1] in pid_dates[int(line[0])]:
+                        num_test_cases += 1
+                        test_input = np.array(np.reshape([int(line[4]), int(line[-1])], (2, 1)), dtype=np.float64)
+                        test_result = int(line[3])
+                        prediction = get_prediction(network, test_input)
+                        error = quantize_float(abs(prediction - test_result) / test_result * 100)
+                        total_error += error
+                        results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[3] + ' ' + str(prediction) + ' ' + str(error) + '\n')
+                line = vip.readline()
+        results.write('\n')
     return quantize_float(total_error / num_test_cases)
 
 if __name__ == '__main__':
@@ -150,9 +216,9 @@ if __name__ == '__main__':
     print('Pids for training: ' + str(train_pids))
     print('Pids for testing: ' + str(test_pids))
 
-    training_data = list(get_training_data())
+    training_data = list(get_training_data(train_pids))
     print('Training data: ' + str(training_data))
 
-    test_input, test_result = get_test_data()
+    test_input, test_result = get_test_data(test_pids)
     print('Test input: ' + str(test_input))
     print('Test result: ' + str(test_result))
