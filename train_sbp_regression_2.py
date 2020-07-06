@@ -1,5 +1,6 @@
 import time
 from train_test_helper_funcs_regression import get_train_test_split_2, get_training_data, train, quantize_float
+import train_test_helper_funcs_regression
 from sklearn.externals import joblib
 # import pickle
 
@@ -28,8 +29,8 @@ def main():
 
         fold += 1
 
-    joblib.dump(regressors, 'regression_2.sav')
-    # pickle.dump(regressors, open('regression_2.sav', 'wb'))
+    joblib.dump(regressors, train_test_helper_funcs_regression.regression_model_save_filename)
+    # pickle.dump(regressors, open(train_test_helper_funcs_regression.regression_model_save_filename, 'wb'))
 
 if __name__ == '__main__':
     main()

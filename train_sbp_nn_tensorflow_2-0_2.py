@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from train_test_helper_funcs_tensorflow import get_train_test_split_2, get_training_data, vectorized_result_list, quantize_float
+import train_test_helper_funcs_tensorflow
 import time
 import sys
 
@@ -30,6 +31,8 @@ def main():
 
     for train_pids in train_pids_list:
         print('{}-fold cross validation fold {}'.format(len(train_pids_list), fold))
+
+        nn_tensorflow_model_save_filename = train_test_helper_funcs.nn_tensorflow_model_save_filename.strip() + '_fold_' + str(fold) + '_'
 
         print('DEBUG - Getting training data...')
 
@@ -74,7 +77,7 @@ def main():
         # start = 0
         # end = int(len(train_X) / 10)
 
-        for epoch in range(10):
+        for epoch in range(5):
             print('DEBUG - Beginning epoch ' + str(epoch + 1) + '...')
 
             ini_time = time.time()
@@ -85,7 +88,7 @@ def main():
                     sess.run(updates, feed_dict={X: train_X[i: i + 1], y: train_y[i: i + 1]})
             except KeyboardInterrupt:
                 print('DEBUG - Epoch ' + str(epoch + 1) + ' interrupted')
-                saver.save(sess, 'nn_tensorflow_' + str(fold))
+                saver.save(sess, nn_tensorflow_model_save_filename)
                 sess.close()
                 exit(0)
 
@@ -103,7 +106,7 @@ def main():
             # start += int((len(train_X) / 10))
             # end += int((len(train_X) / 10))
 
-        saver.save(sess, 'nn_tensorflow_' + str(fold))
+        saver.save(sess, nn_tensorflow_model_save_filename)
 
         fold += 1
 

@@ -19,6 +19,8 @@ if __name__ == '__main__':
     for train_pids in train_pids_list:
         print('{}-fold cross validation fold {}'.format(len(train_pids_list), fold))
 
+        nn_model_save_filename = train_test_helper_funcs.neural_network_model_save_filename.strip().split('.')[0] + '_fold_' + str(fold) + '_.json'
+
         print('DEBUG - Getting training data...')
 
         ini_time = time.time()
@@ -32,9 +34,9 @@ if __name__ == '__main__':
         try:
             nn.SGD(training_data, epochs, mini_batch_size, eta, lmbda=lmbda, monitor_training_cost=True, monitor_training_accuracy=True)
         except KeyboardInterrupt:
-            nn.save('network_params_' + str(fold) + '.json')
+            nn.save(nn_model_save_filename)
             exit(0)
 
-        nn.save('network_params_' + str(fold) + '.json')
+        nn.save(nn_model_save_filename)
 
         fold += 1

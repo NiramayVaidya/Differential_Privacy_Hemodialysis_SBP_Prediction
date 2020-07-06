@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from train_test_helper_funcs_tensorflow import get_train_test_split, get_test_data, compute_save_prediction_results, quantize_float
+import train_test_helper_funcs_tensorflow
 import time
 
 def main():
@@ -9,8 +10,8 @@ def main():
     train_pids, test_pids = get_train_test_split()
 
     with tf.compat.v1.Session() as sess:
-        saver = tf.compat.v1.train.import_meta_graph('nn_tensorflow.meta')
-        saver.restore(sess, tf.compat.v1.train.latest_checkpoint('./'))
+        saver = tf.compat.v1.train.import_meta_graph(train_test_helper_funcs_tensorflow.nn_tensorflow_model_save_filename + '.meta')
+        saver.restore(sess, tf.compat.v1.train.latest_checkpoint('saved_models_nn_tensorflow/'))
 
         graph = tf.compat.v1.get_default_graph()
 
@@ -23,7 +24,7 @@ def main():
         ini_time = time.time()
 
         mape = compute_save_prediction_results(test_pids, sess, X, y, predict)
-        print('DEBUG - Computed and saved prediction results to prediction_results_tensorflow.txt')
+        print('DEBUG - Computed and saved prediction results to ' + train_test_helper_funcs_tensorflow.prediction_results_filename)
 
         print('INFO - Execution time for computing and saving prediction results: ' + str(quantize_float(time.time() - ini_time)) + ' s')
 
@@ -39,7 +40,7 @@ def main():
         predicted_sbp = sess.run(predict, feed_dict={X: test_X, y: test_y})[0] + 1
         # predicted_sbp = quantize_float(sess.run(predict, feed_dict={X: test_X, y: test_y})[0] * 250)
         print('Predicted SBP = ' + str(predicted_sbp))
-        print('INFO - Absolute Percentage error = ' + str(quantize_float(abs(predicted_sbp - actual_sbp) / actual_sbp * 100)))
+        print('INFO - Absolute Percentage error = ' + str(quantize_float(abs((predicted_sbp - actual_sbp) / actual_sbp * 100))))
 
 if __name__ == '__main__':
     main()

@@ -2,12 +2,94 @@ import numpy as np
 import sys
 from decimal import *
 
+'''
+Naming convention
+Files ending without _ are my files
+Files ending with _ are Sneh's files
+'''
+
+'''
+Without DP
+Hold out and cross validation
+vip_cleaned.csv
+vip_cleaned_.csv
+
+With DP
+Hold out and cross validation
+vip_cleaned_dp_0_1.csv
+vip_cleaned_dp_1.csv
+vip_cleaned_dp_2.csv
+vip_cleaned_dp_0_1_.csv
+vip_cleaned_dp_1_.csv
+vip_cleaned_dp_2_.csv
+'''
+vip_filename = 'vip_files/vip_cleaned_dp_0_1_.csv'
+
+vip_const_filename = 'vip_files/vip_cleaned_.csv'
+
+d1_filename = 'd1_cleaned.csv'
+idp_filename = 'idp_cleaned.csv'
+
+'''
+Without DP
+Hold out
+prediction_results_tensorflow.txt
+prediction_results_tensorflow_.txt
+Cross validation
+prediction_results_tensorflow_2.txt
+prediction_results_tensorflow_2_.txt
+
+With DP (0.1, 1, 2)
+Hold out
+prediction_results_tensorflow_dp_0_1.txt
+prediction_results_tensorflow_dp_1.txt
+prediction_results_tensorflow_dp_2.txt
+prediction_results_tensorflow_dp_0_1_.txt
+prediction_results_tensorflow_dp_1_.txt
+prediction_results_tensorflow_dp_2_.txt
+Cross validation
+prediction_results_tensorflow_2_dp_0_1.txt
+prediction_results_tensorflow_2_dp_1.txt
+prediction_results_tensorflow_2_dp_2.txt
+prediction_results_tensorflow_2_dp_0_1_.txt
+prediction_results_tensorflow_2_dp_1_.txt
+prediction_results_tensorflow_2_dp_2_.txt
+'''
+prediction_results_filename = 'results_nn_tensorflow/prediction_results_tensorflow_dp_0_1_.txt'
+
+'''
+Without DP
+Hold out
+nn_tensorflow
+nn_tensorflow_
+Cross validation
+nn_tensorflow_2
+nn_tensorflow_2_
+
+With DP (0.1, 1, 2)
+Hold out
+nn_tensorflow_dp_0_1
+nn_tensorflow_dp_1
+nn_tensorflow_dp_2
+nn_tensorflow_dp_0_1_
+nn_tensorflow_dp_1_
+nn_tensorflow_dp_2_
+Cross validation
+nn_tensorflow_2_dp_0_1
+nn_tensorflow_2_dp_1
+nn_tensorflow_2_dp_2
+nn_tensorflow_2_dp_0_1_
+nn_tensorflow_2_dp_1_
+nn_tensorflow_2_dp_2_
+'''
+nn_tensorflow_model_save_filename = 'saved_models_nn_tensorflow/nn_tensorflow_dp_0_1_'
+
 def quantize_float(num):
     return float(Decimal(num).quantize(Decimal('1.00')))
 
 def get_train_test_split():
     pids = []
-    with open('idp_cleaned.csv', 'r') as idp:
+    with open(idp_filename, 'r') as idp:
         line = idp.readline()
         line = idp.readline()
         while line is not '':
@@ -25,7 +107,7 @@ def get_train_test_split_2():
     pids = []
     train_pids_list = []
     test_pids_list = []
-    with open('idp_cleaned.csv', 'r') as idp:
+    with open(idp_filename, 'r') as idp:
         line = idp.readline()
         line = idp.readline()
         while line is not '':
@@ -48,15 +130,10 @@ def get_train_test_split_2():
 
     return (train_pids_list, test_pids_list)
 
-def vectorized_result(j):
-    e = np.zeros((250, 1))
-    e[j] = 1.0
-    return e
-
 def vectorized_result_list(j):
     e = []
     for iterator in range(0, 250):
-        if iterator == j - 1:
+        if iterator == int(j) - 1:
             e.append(1.0)
         else:
             e.append(0.0)
@@ -66,16 +143,24 @@ def get_training_data(train_pids):
     train_sbp_values = []
     train_dbp_values = []
     train_times = []
-    with open('vip_cleaned.csv', 'r') as vip:
+    with open(vip_filename, 'r') as vip, open(vip_const_filename, 'r') as vip_other:
         line = vip.readline()
         line = vip.readline()
-        while line is not '':
+        line_other = vip_other.readline()
+        line_other = vip_other.readline()
+        while line is not '' or line_other is not '':
             line = line.strip().split(',')
+            line_other = line_other.strip().split(',')
             if int(line[0]) in train_pids:
-                train_sbp_values.append(int(line[3]))
-                train_dbp_values.append(int(line[4]))
-                train_times.append(int(line[-1]))
+                # train_sbp_values.append(int(line[3]))
+                # train_sbp_values.append(float(line[3]))
+                train_sbp_values.append(float(line_other[3]))
+                # train_dbp_values.append(int(line[4]))
+                train_dbp_values.append(float(line[4]))
+                # train_times.append(int(line[-1]))
+                train_times.append(float(line[-1]))
             line = vip.readline()
+            line_other = vip_other.readline()
     training_inputs = np.array([[1.0, dbp, time] for dbp, time in zip(train_dbp_values, train_times)], dtype=np.float64)
     training_results = np.array([vectorized_result_list(sbp) for sbp in train_sbp_values], dtype=np.float64)
     # training_results = np.array([[quantize_float(sbp / 250)] for sbp in train_sbp_values], dtype=np.float64)
@@ -92,7 +177,7 @@ def get_test_data(test_pids):
 
     dates = []
     found = False
-    with open('d1_cleaned.csv', 'r') as d1:
+    with open(d1_filename, 'r') as d1:
         line = d1.readline()
         line = d1.readline()
         while line is not '' and not found:
@@ -118,16 +203,19 @@ def get_test_data(test_pids):
     sbp_values = []
     dbp_values = []
     found = False
-    with open('vip_cleaned.csv', 'r') as vip:
+    with open(vip_const_filename, 'r') as vip:
         line = vip.readline()
         line = vip.readline()
         while line is not '' and not found:
             line = line.strip().split(',')
             while line[0] + ' ' + line[1] == str(pid) + ' ' + date:
                 found = True
-                times.append(int(line[-1]))
-                sbp_values.append(int(line[3]))
-                dbp_values.append(int(line[4]))
+                # times.append(int(line[-1]))
+                times.append(float(line[-1]))
+                # sbp_values.append(int(line[3]))
+                sbp_values.append(float(line[3]))
+                # dbp_values.append(int(line[4]))
+                dbp_values.append(float(line[4]))
                 print(line[-1], end=' ')
                 line = vip.readline().strip().split(',')
                 if line[0] is '':
@@ -137,10 +225,12 @@ def get_test_data(test_pids):
     if times == []:
         print('Rerun the code and select another date or another pid if this is the only listed date, this date does not have any associated times')
         sys.exit(0)
-    time = int(input('Enter time by selecting one from the above: '))
+    # time = int(input('Enter time by selecting one from the above: '))
+    time = float(input('Enter time by selecting one from the above: '))
     # while time not in times or time == times[-1]:
     while time not in times:
-        time = int(input('Enter time by selecting one from the above: '))
+        # time = int(input('Enter time by selecting one from the above: '))
+        time = float(input('Enter time by selecting one from the above: '))
     print('\n')
 
     test_input = np.array([[1.0, dbp_values[times.index(time)], times[times.index(time)]]], dtype=np.float64)
@@ -155,7 +245,7 @@ def compute_save_prediction_results(test_pids, tf_session, tf_X_var, tf_y_var, t
     num_test_cases = 0
     for test_pid in test_pids:
         pid_dates[test_pid] = []
-    with open('d1_cleaned.csv', 'r') as d1:
+    with open(d1_filename, 'r') as d1:
         line = d1.readline()
         line = d1.readline()
         while line is not '':
@@ -163,9 +253,9 @@ def compute_save_prediction_results(test_pids, tf_session, tf_X_var, tf_y_var, t
             if int(line[0]) in pid_dates.keys():
                 pid_dates[int(line[0])].append(line[1])
             line = d1.readline()
-    with open('prediction_results_tensorflow.txt', 'w') as results:
+    with open(prediction_results_filename, 'w') as results:
         results.write('Pid Date Time Actual_SBP Predicted_SBP Absolute_Percentage_Error\n')
-        with open('vip_cleaned.csv', 'r') as vip:
+        with open(vip_const_filename, 'r') as vip:
             line = vip.readline()
             line = vip.readline()
             while line is not '':
@@ -173,13 +263,17 @@ def compute_save_prediction_results(test_pids, tf_session, tf_X_var, tf_y_var, t
                 if int(line[0]) in pid_dates.keys():
                     if line[1] in pid_dates[int(line[0])]:
                         num_test_cases += 1
-                        test_X = np.array([[1.0, int(line[4]), int(line[-1])]], dtype=np.float64)
-                        test_y = np.array([vectorized_result_list(int(line[3]))], dtype=np.float64)
+                        # test_X = np.array([[1.0, int(line[4]), int(line[-1])]], dtype=np.float64)
+                        test_X = np.array([[1.0, float(line[4]), float(line[-1])]], dtype=np.float64)
+                        # test_y = np.array([vectorized_result_list(int(line[3]))], dtype=np.float64)
+                        test_y = np.array([vectorized_result_list(float(line[3]))], dtype=np.float64)
                         # test_y = np.array([[quantize_float(int(line[3]) / 250)]])
-                        actual_sbp = int(line[3])
+                        # actual_sbp = int(line[3])
+                        actual_sbp = float(line[3])
                         predicted_sbp = tf_session.run(tf_predict_var, feed_dict={tf_X_var: test_X, tf_y_var: test_y})[0] + 1
                         # predicted_sbp = tf_session.run(tf_predict_var, feed_dict={tf_X_var: test_X, tf_y_var: test_y})[0] * 250
-                        error = quantize_float(abs(predicted_sbp - actual_sbp) / actual_sbp * 100)
+                        # error = quantize_float(abs(predicted_sbp - actual_sbp) / actual_sbp * 100)
+                        error = quantize_float(abs((predicted_sbp - actual_sbp) / actual_sbp * 100))
                         total_error += error
                         results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[3] + ' ' + str(predicted_sbp) + ' ' + str(error) + '\n')
                 line = vip.readline()
@@ -191,7 +285,7 @@ def compute_save_prediction_results_2(test_pids, tf_session, tf_X_var, tf_y_var,
     num_test_cases = 0
     for test_pid in test_pids:
         pid_dates[test_pid] = []
-    with open('d1_cleaned.csv', 'r') as d1:
+    with open(d1_filename, 'r') as d1:
         line = d1.readline()
         line = d1.readline()
         while line is not '':
@@ -202,10 +296,10 @@ def compute_save_prediction_results_2(test_pids, tf_session, tf_X_var, tf_y_var,
     mode = 'a'
     if fold == 1:
         mode = 'w'
-    with open('prediction_results_tensorflow_2.txt', mode) as results:
+    with open(prediction_results_filename, mode) as results:
         results.write('Fold ' + str(fold) + '\n')
         results.write('Pid Date Time Actual_SBP Predicted_SBP Absolute_Percentage_Error\n')
-        with open('vip_cleaned.csv', 'r') as vip:
+        with open(vip_const_filename, 'r') as vip:
             line = vip.readline()
             line = vip.readline()
             while line is not '':
@@ -213,13 +307,17 @@ def compute_save_prediction_results_2(test_pids, tf_session, tf_X_var, tf_y_var,
                 if int(line[0]) in pid_dates.keys():
                     if line[1] in pid_dates[int(line[0])]:
                         num_test_cases += 1
-                        test_X = np.array([[1.0, int(line[4]), int(line[-1])]], dtype=np.float64)
-                        test_y = np.array([vectorized_result_list(int(line[3]))], dtype=np.float64)
+                        # test_X = np.array([[1.0, int(line[4]), int(line[-1])]], dtype=np.float64)
+                        test_X = np.array([[1.0, float(line[4]), float(line[-1])]], dtype=np.float64)
+                        # test_y = np.array([vectorized_result_list(int(line[3]))], dtype=np.float64)
+                        test_y = np.array([vectorized_result_list(float(line[3]))], dtype=np.float64)
                         # test_y = np.array([[quantize_float(int(line[3]) / 250)]])
-                        actual_sbp = int(line[3])
+                        # actual_sbp = int(line[3])
+                        actual_sbp = float(line[3])
                         predicted_sbp = tf_session.run(tf_predict_var, feed_dict={tf_X_var: test_X, tf_y_var: test_y})[0] + 1
                         # predicted_sbp = tf_session.run(tf_predict_var, feed_dict={tf_X_var: test_X, tf_y_var: test_y})[0] * 250
-                        error = quantize_float(abs(predicted_sbp - actual_sbp) / actual_sbp * 100)
+                        # error = quantize_float(abs(predicted_sbp - actual_sbp) / actual_sbp * 100)
+                        error = quantize_float(abs((predicted_sbp - actual_sbp) / actual_sbp * 100))
                         total_error += error
                         results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[3] + ' ' + str(predicted_sbp) + ' ' + str(error) + '\n')
                 line = vip.readline()

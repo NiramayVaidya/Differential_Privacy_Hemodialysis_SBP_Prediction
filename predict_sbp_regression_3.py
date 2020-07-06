@@ -1,13 +1,14 @@
 import time
 from train_test_helper_funcs_regression import get_train_test_split_2, get_test_data, predict, compute_save_prediction_results_2, quantize_float
+import train_test_helper_funcs_regression
 from sklearn.externals import joblib
 # import pickle
 
 def main():
     train_pids_list, test_pids_list = get_train_test_split_2()
 
-    regressors = joblib.load('regression_2.sav')
-    # regressors = pickle.load(open('regression_2.sav', 'rb'))
+    regressors = joblib.load(train_test_helper_funcs_regression.regression_model_save_filename)
+    # regressors = pickle.load(open(train_test_helper_funcs_regression.regression_model_save_filename, 'rb'))
 
     fold = 1
     index = 0
@@ -22,7 +23,7 @@ def main():
 
         mape = compute_save_prediction_results_2(regressor, test_pids_list[index], fold)
         avg_mape += mape
-        print('DEBUG - Computed and saved prediction results to prediction_results_regression_2.txt')
+        print('DEBUG - Computed and saved prediction results to ' + str(train_test_helper_funcs_regression.prediction_results_filename))
 
         print('INFO - Execution time for computing and saving prediction results: ' + str(quantize_float(time.time() - ini_time)) + ' s')
 
