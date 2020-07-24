@@ -1,6 +1,10 @@
 import numpy as np
 from decimal import *
 from sklearn.linear_model import LinearRegression
+# from sklearn.linear_model import LogisticRegression, SGDClassifier
+# from sklearn import preprocessing
+# from sklearn import utils
+# from scipy import sparse
 
 '''
 Naming convention
@@ -23,9 +27,9 @@ vip_cleaned_dp_0_1_.csv
 vip_cleaned_dp_1_.csv
 vip_cleaned_dp_2_.csv
 '''
-vip_filename = 'vip_files/vip_cleaned_dp_2_time_perturbed_.csv'
+vip_filename = 'vip_files/vip_cleaned_.csv'
 
-vip_const_filename = 'vip_files/vip_cleaned_for_time_perturbed_.csv'
+vip_const_filename = 'vip_files/vip_cleaned_.csv'
 
 d1_filename = 'd1_cleaned.csv'
 idp_filename = 'idp_cleaned.csv'
@@ -54,8 +58,13 @@ prediction_results_regression_2_dp_2.txt
 prediction_results_regression_2_dp_0_1_.txt
 prediction_results_regression_2_dp_1_.txt
 prediction_results_regression_2_dp_2_.txt
+
+For logistic regression
+prediction_results_log_regression_dp_0_1_time_perturbed_.txt (use similar filenames)
 '''
-prediction_results_filename = 'results_regression/prediction_results_regression_2_dp_2_time_perturbed_.txt'
+prediction_results_filename = 'results_regression/prediction_results_regression_.txt'
+
+mi_attack_dbp_prediction_results_filename = 'results_regression/mi_attack_dbp/prediction_results_regression_mi_attack_dbp_.txt'
 
 '''
 Without DP
@@ -81,8 +90,11 @@ regression_2_dp_2.sav
 regression_2_dp_0_1_.sav
 regression_2_dp_1_.sav
 regression_2_dp_2_.sav
+
+For logistic regression
+log_regression_dp_0_1_time_perturbed_.sav (use similar filenames)
 '''
-regression_model_save_filename = 'saved_models_regression/regression_2_dp_2_time_perturbed_.sav'
+regression_model_save_filename = 'saved_models_regression/mi_attack_dbp/full_dataset_regression_.sav'
 
 def quantize_float(num):
     return float(Decimal(num).quantize(Decimal('1.00')))
@@ -96,10 +108,13 @@ def get_train_test_split():
             line = line.strip().split(',')
             pids.append(int(line[0]))
             line = idp.readline()
-    train_test_split_point = int(len(pids) * 0.8)
-    train_pids = pids[:train_test_split_point]
-    test_pids = pids[train_test_split_point:]
-    return (train_pids, test_pids)
+    # train_test_split_point = int(len(pids) * 0.8)
+    # train_pids = pids[:int(len(pids) * 0.1 * 0.8)]
+    # train_pids = pids[:train_test_split_point]
+    # test_pids = pids[int(len(pids) * 0.1 * 0.8):int(len(pids) * 0.1)]
+    # test_pids = pids[train_test_split_point:]
+    # return (train_pids, test_pids)
+    return (pids, pids)
 
 def get_train_test_split_2():
     pids = []
@@ -145,7 +160,11 @@ def get_training_data(train_pids):
                 # train_times.append(int(line[-1]))
                 train_times.append(float(line[-1]))
             line = vip.readline()
+    # x_train = np.ascontiguousarray(np.array([[dbp_value, time] for dbp_value, time in zip(train_dbp_values, train_times)]), dtype=np.float64)
+    # x_train = sparse.csr_matrix(np.array([[dbp_value, time] for dbp_value, time in zip(train_dbp_values, train_times)]), dtype=np.float64)
     x_train = np.array([[dbp_value, time] for dbp_value, time in zip(train_dbp_values, train_times)])
+    # y_train = np.ascontiguousarray(np.array(train_sbp_values), dtype=np.float64)
+    # y_train = sparse.csr_matrix(np.array(train_sbp_values), dtype=np.float64)
     y_train = np.array(train_sbp_values).reshape(-1, 1)
     return (x_train, y_train)
 
@@ -222,21 +241,45 @@ def get_test_data(test_pids):
     return (x_test, y_expect)
 
 def train(x_train, y_train):
-    regressor = LinearRegression()
+    regressor = LinearRegression(fit_intercept=True, n_jobs=-1)
     regressor.fit(x_train, y_train)
     # print('Regressor parameters: intercept = ' + str(quantize_float(regressor.intercept_[0])) + ', coefficients = ' + str(quantize_float(regressor.coef_[0][0])) + ', ' + str(quantize_float(regressor.coef_[0][1])))
     print('Regressor parameters: intercept = ' + str(regressor.intercept_[0]) + ', coefficients = ' + str(regressor.coef_[0][0]) + ', ' + str(regressor.coef_[0][1]))
     # print('Regressor equation: SBP = (' + str(quantize_float(regressor.coef_[0][0])) + ' * DBP) + (' + str(quantize_float(regressor.coef_[0][1])) + ' * time_value) + ' + str(quantize_float(regressor.intercept_[0])))
     print('Regressor equation: SBP = (' + str(regressor.coef_[0][0]) + ' * DBP) + (' + str(regressor.coef_[0][1]) + ' * time_value) + ' + str(regressor.intercept_[0]))
+    print('MI attack equation: DBP = (' + str(1 / regressor.coef_[0][0]) + ' * SBP) + (' + str(-regressor.coef_[0][1] / regressor.coef_[0][0]) + ' * time_value) + ' + str(-regressor.intercept_[0] / regressor.coef_[0][0]))
     return regressor
+    '''
+    # solver = sag/lbfgs
+    # regressor = LogisticRegression(fit_intercept=True, solver='sag', max_iter=1, multi_class='multinomial', verbose=25, n_jobs=-1)
+    regressor = SGDClassifier(loss='log', fit_intercept=True, max_iter=1, verbose=25, n_jobs=-1, learning_rate='optimal')
+    # ln(SBP/(1 - SBP)) = a * DBP + b * time_value + c
+    # k = a * DBP + b * time_value + c
+    # SBP = e^k / (1 + e^k)
+    label_encoder = preprocessing.LabelEncoder()
+    encoded_y_train = label_encoder.fit_transform(y_train)
+    # regressor.fit(x_train, y_train)
+    regressor.fit(x_train, encoded_y_train)
+    # print('Regressor parameters: intercept = ' + str(quantize_float(regressor.intercept_[0])) + ', coefficients = ' + str(quantize_float(regressor.coef_[0][0])) + ', ' + str(quantize_float(regressor.coef_[0][1])))
+    print('Regressor parameters: intercept = ' + str(regressor.intercept_[0]) + ', coefficients = ' + str(regressor.coef_[0][0]) + ', ' + str(regressor.coef_[0][1]))
+    # print('Regressor equation: SBP = e^k / (1 + e^k)')
+    # print('k = (' + str(quantize_float(regressor.coef_[0][0])) + ' * DBP) + (' + str(quantize_float(regressor.coef_[0][1])) + ' * time_value) + ' + str(quantize_float(regressor.intercept_[0])))
+    print('Regressor equation: SBP = e^k / (1 + e^k)')
+    print('k = (' + str(regressor.coef_[0][0]) + ' * DBP) + (' + str(regressor.coef_[0][1]) + ' * time_value) + ' + str(regressor.intercept_[0]))
+    return regressor
+    '''
 
 def predict(regressor, x_test):
     y_pred = regressor.predict(np.array([x_test]))
     return quantize_float(y_pred[0][0])
 
+def predict_mi_attack_dbp(regressor, sbp, time_value):
+    return quantize_float((sbp - regressor.intercept_[0] - (regressor.coef_[0][1] * time_value)) / regressor.coef_[0][0])
+
 def compute_save_prediction_results(regressor, test_pids):
     pid_dates = {}
     total_error = 0
+    mi_attack_total_error = 0
     num_test_cases = 0
     for test_pid in test_pids:
         pid_dates[test_pid] = []
@@ -248,8 +291,10 @@ def compute_save_prediction_results(regressor, test_pids):
             if int(line[0]) in pid_dates.keys():
                 pid_dates[int(line[0])].append(line[1])
             line = d1.readline()
-    with open(prediction_results_filename, 'w') as results:
-        results.write('Pid Date Time Actual_SBP Predicted_SBP Absolute_Percentage_Error\n')
+    # with open(prediction_results_filename, 'w') as results, open(mi_attack_dbp_prediction_results_filename, 'w') as mi_attack_dbp_results:
+    with open(mi_attack_dbp_prediction_results_filename, 'w') as mi_attack_dbp_results:
+        # results.write('Pid Date Time Actual_SBP Predicted_SBP Absolute_Percentage_Error\n')
+        mi_attack_dbp_results.write('Pid Date Time Actual_DBP Predicted_DBP MI_Attack_Absolute_Percentage_Error\n')
         with open(vip_const_filename, 'r') as vip:
             line = vip.readline()
             line = vip.readline()
@@ -259,19 +304,25 @@ def compute_save_prediction_results(regressor, test_pids):
                     if line[1] in pid_dates[int(line[0])]:
                         num_test_cases += 1
                         # y_expect = int(line[3])
-                        y_expect = float(line[3])
+                        # y_expect = float(line[3])
                         # y_pred = predict(regressor, [int(line[4]), int(line[-1])])
                         y_pred = predict(regressor, [float(line[4]), float(line[-1])])
                         # error = quantize_float(abs(y_pred - y_expect) / y_expect * 100)
-                        error = quantize_float(abs((y_pred - y_expect) / y_expect * 100))
-                        total_error += error
-                        results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[3] + ' ' + str(y_pred) + ' ' + str(error) + '\n')
+                        # error = quantize_float(abs((y_pred - y_expect) / y_expect * 100))
+                        # total_error += error
+                        # results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[3] + ' ' + str(y_pred) + ' ' + str(error) + '\n')
+                        mi_attack_dbp_expect = float(line[4])
+                        mi_attack_dbp_pred = predict_mi_attack_dbp(regressor, y_pred, float(line[-1]))
+                        mi_attack_error = quantize_float(abs((mi_attack_dbp_pred - mi_attack_dbp_expect) / mi_attack_dbp_expect * 100))
+                        mi_attack_total_error += mi_attack_error
+                        mi_attack_dbp_results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[4] + ' ' + str(mi_attack_dbp_pred) + ' ' + str(mi_attack_error) + '\n')
                 line = vip.readline()
-    return quantize_float(total_error / num_test_cases)
+    return (quantize_float(total_error / num_test_cases), quantize_float(mi_attack_total_error / num_test_cases))
 
 def compute_save_prediction_results_2(regressor, test_pids, fold):
     pid_dates = {}
     total_error = 0
+    mi_attack_total_error = 0
     num_test_cases = 0
     for test_pid in test_pids:
         pid_dates[test_pid] = []
@@ -286,9 +337,11 @@ def compute_save_prediction_results_2(regressor, test_pids, fold):
     mode = 'a'
     if fold == 1:
         mode = 'w'
-    with open(prediction_results_filename, mode) as results:
+    with open(prediction_results_filename, mode) as results, open(mi_attack_dbp_prediction_results_filename, mode) as mi_attack_dbp_results:
         results.write('Fold ' + str(fold) + '\n')
         results.write('Pid Date Time Actual_SBP Predicted_SBP Absolute_Percentage_Error\n')
+        mi_attack_dbp_results.write('Fold ' + str(fold) + '\n')
+        mi_attack_dbp_results.write('Pid Date Time Actual_DBP Predicted_DBP MI_Attack_Absolute_Percentage_Error\n')
         with open(vip_const_filename, 'r') as vip:
             line = vip.readline()
             line = vip.readline()
@@ -305,9 +358,15 @@ def compute_save_prediction_results_2(regressor, test_pids, fold):
                         error = quantize_float(abs((y_pred - y_expect) / y_expect * 100))
                         total_error += error
                         results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[3] + ' ' + str(y_pred) + ' ' + str(error) + '\n')
+                        mi_attack_dbp_expect = float(line[4])
+                        mi_attack_dbp_pred = predict_mi_attack_dbp(regressor, y_pred, float(line[-1]))
+                        mi_attack_error = quantize_float(abs((mi_attack_dbp_pred - mi_attack_dbp_expect) / mi_attack_dbp_expect * 100))
+                        mi_attack_total_error += mi_attack_error
+                        mi_attack_dbp_results.write(line[0] + ' ' + line[1] + ' ' + line[-1] + ' ' + line[4] + ' ' + str(mi_attack_dbp_pred) + ' ' + str(mi_attack_error) + '\n')
                 line = vip.readline()
         results.write('\n')
-    return quantize_float(total_error / num_test_cases)
+        mi_attack_dbp_results.write('\n')
+    return (quantize_float(total_error / num_test_cases), quantize_float(mi_attack_total_error / num_test_cases))
 
 if __name__ == '__main__':
     train_pids, test_pids = get_train_test_split()
